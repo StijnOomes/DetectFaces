@@ -39,6 +39,7 @@
 			isa = PBXGroup;
 			children = (
 				0407C87D1C522751005F6FC7 /* DetectFaces */,
+				0407C8901C522790005F6FC7 /* Other Files */,
 				0407C87C1C522751005F6FC7 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,13 +55,21 @@
 		0407C87D1C522751005F6FC7 /* DetectFaces */ = {
 			isa = PBXGroup;
 			children = (
-				0407C87E1C522751005F6FC7 /* AppDelegate.swift */,
 				0407C8801C522751005F6FC7 /* ViewController.swift */,
 				0407C8821C522751005F6FC7 /* Main.storyboard */,
+			);
+			path = DetectFaces;
+			sourceTree = "<group>";
+		};
+		0407C8901C522790005F6FC7 /* Other Files */ = {
+			isa = PBXGroup;
+			children = (
+				0407C87E1C522751005F6FC7 /* AppDelegate.swift */,
 				0407C8851C522751005F6FC7 /* Assets.xcassets */,
 				0407C8871C522751005F6FC7 /* LaunchScreen.storyboard */,
 				0407C88A1C522751005F6FC7 /* Info.plist */,
 			);
+			name = "Other Files";
 			path = DetectFaces;
 			sourceTree = "<group>";
 		};
@@ -253,6 +262,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.oomesvisionsystems.DetectFaces;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Debug;
 		};
@@ -264,6 +274,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.oomesvisionsystems.DetectFaces;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Release;
 		};
