@@ -19,38 +19,38 @@ class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate, 
     @IBOutlet weak var avFaceRoll: UILabel!
     @IBOutlet weak var avFaceYaw: UILabel!
     
-    var session: AVCaptureSession!
-    var camera: AVCaptureDevice?
+    var captureSession: AVCaptureSession!
+    var cameraDevice: AVCaptureDevice?
     var previewLayer: AVCaptureVideoPreviewLayer?
-    var metadataOutput:AVCaptureMetadataOutput!
+    var metadataOutput: AVCaptureMetadataOutput!
     var faceDetector: CIDetector?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        session = AVCaptureSession()
-        session.sessionPreset = AVCaptureSessionPresetMedium
+        captureSession = AVCaptureSession()
+        captureSession.sessionPreset = AVCaptureSessionPresetMedium
         
         let cameras = AVCaptureDevice.devicesWithMediaType(AVMediaTypeVideo)
         for device in cameras as! [AVCaptureDevice] {
-            if device.position == .Back {
-                camera = device
+            if device.position == .Front {
+                cameraDevice = device
             }
         }
         
         do {
-            let input = try AVCaptureDeviceInput(device: camera)
-            if session.canAddInput(input) {
-                session.addInput(input)
+            let videoInput = try AVCaptureDeviceInput(device: cameraDevice)
+            if captureSession.canAddInput(videoInput) {
+                captureSession.addInput(videoInput)
             } else {
-                print("Camera video input can not be added.")
+                print("Video input can not be added.")
             }
         } catch {
-            print("Something went wrong with the  camera.")
+            print("Something went wrong with the video input.")
             return
         }
 
-        if let previewLayer = AVCaptureVideoPreviewLayer.init(session: session) {
+        if let previewLayer = AVCaptureVideoPreviewLayer.init(session: captureSession) {
             previewLayer.frame = videoView.bounds
             videoView.layer.addSublayer(previewLayer)
         } else {
@@ -60,8 +60,8 @@ class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate, 
         metadataOutput = AVCaptureMetadataOutput()
         let metaQueue = dispatch_queue_create("MetaDataSession", DISPATCH_QUEUE_SERIAL)
         metadataOutput.setMetadataObjectsDelegate(self, queue: metaQueue)
-        if session.canAddOutput(metadataOutput) {
-            session.addOutput(metadataOutput)
+        if captureSession.canAddOutput(metadataOutput) {
+            captureSession.addOutput(metadataOutput)
         } else {
             print("Meta data output can not be added.")
         }
@@ -70,19 +70,19 @@ class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate, 
         
         let videoOutput = AVCaptureVideoDataOutput()
         videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)]
-        videoOutput.alwaysDiscardsLateVideoFrames = true        
+        videoOutput.alwaysDiscardsLateVideoFrames = true
         let outputQueue = dispatch_queue_create("CameraSession", DISPATCH_QUEUE_SERIAL)
         videoOutput.setSampleBufferDelegate(self, queue: outputQueue)
-        if session.canAddOutput(videoOutput) {
-            session.addOutput(videoOutput)
+        if captureSession.canAddOutput(videoOutput) {
+            captureSession.addOutput(videoOutput)
         } else {
-            print("Camera video output can not be added.")
+            print("Video output can not be added.")
         }
         
         let configurationOptions: [String: AnyObject] = [CIDetectorAccuracy: CIDetectorAccuracyHigh, CIDetectorTracking : true, CIDetectorNumberOfAngles: 11]
         faceDetector = CIDetector(ofType: CIDetectorTypeFace, context: nil, options: configurationOptions)
 
-        session.startRunning()
+        captureSession.startRunning()
     }
     
     
