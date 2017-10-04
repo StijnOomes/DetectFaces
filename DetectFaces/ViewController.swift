@@ -19,27 +19,38 @@ class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate, 
     @IBOutlet weak var avFaceRoll: UILabel!
     @IBOutlet weak var avFaceYaw: UILabel!
     
-    var captureSession: AVCaptureSession!
+    //var captureSession: AVCaptureSession!
     var cameraDevice: AVCaptureDevice?
-    var previewLayer: AVCaptureVideoPreviewLayer?
-    var metadataOutput: AVCaptureMetadataOutput!
+    //var previewLayer: AVCaptureVideoPreviewLayer?
+    //var metadataOutput: AVCaptureMetadataOutput!
     var faceDetector: CIDetector?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        captureSession = AVCaptureSession()
-        captureSession.sessionPreset = AVCaptureSessionPresetMedium
+        let captureSession = AVCaptureSession()
+        captureSession.sessionPreset = AVCaptureSession.Preset.medium
         
-        let cameras = AVCaptureDevice.devicesWithMediaType(AVMediaTypeVideo)
-        for device in cameras as! [AVCaptureDevice] {
-            if device.position == .Front {
-                cameraDevice = device
+//        let cameras = AVCaptureDevice.devices(for: AVMediaType.video)
+//        for device in cameras as! [AVCaptureDevice] {
+//            if device.position == .front {
+//                cameraDevice = device
+//            }
+//        }
+        
+        let videoDeviceDiscovery = AVCaptureDevice.DiscoverySession(deviceTypes: [AVCaptureDevice.DeviceType.builtInWideAngleCamera], mediaType: AVMediaType.video, position: .unspecified)
+        
+        for camera in videoDeviceDiscovery.devices as [AVCaptureDevice] {
+            if camera.position == .front {
+                cameraDevice = camera
             }
+        }
+        if cameraDevice == nil {
+            print("Could not find front camera.")
         }
         
         do {
-            let videoInput = try AVCaptureDeviceInput(device: cameraDevice)
+            let videoInput = try AVCaptureDeviceInput(device: cameraDevice!)
             if captureSession.canAddInput(videoInput) {
                 captureSession.addInput(videoInput)
             } else {
@@ -50,15 +61,12 @@ class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate, 
             return
         }
 
-        if let previewLayer = AVCaptureVideoPreviewLayer.init(session: captureSession) {
-            previewLayer.frame = videoView.bounds
-            videoView.layer.addSublayer(previewLayer)
-        } else {
-            print("Preview layer could not be added.")
-        }
+        let previewLayer = AVCaptureVideoPreviewLayer.init(session: captureSession)
+        previewLayer.frame = videoView.bounds
+        videoView.layer.addSublayer(previewLayer)
         
-        metadataOutput = AVCaptureMetadataOutput()
-        let metaQueue = dispatch_queue_create("MetaDataSession", DISPATCH_QUEUE_SERIAL)
+        let metadataOutput = AVCaptureMetadataOutput()
+        let metaQueue = DispatchQueue(label: "MetaDataSession")
         metadataOutput.setMetadataObjectsDelegate(self, queue: metaQueue)
         if captureSession.canAddOutput(metadataOutput) {
             captureSession.addOutput(metadataOutput)
@@ -66,12 +74,12 @@ class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate, 
             print("Meta data output can not be added.")
         }
 
-        metadataOutput.metadataObjectTypes = [AVMetadataObjectTypeFace]
+        metadataOutput.metadataObjectTypes = [AVMetadataObject.ObjectType.face]
         
         let videoOutput = AVCaptureVideoDataOutput()
-        videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_32BGRA)]
+        videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
         videoOutput.alwaysDiscardsLateVideoFrames = true
-        let outputQueue = dispatch_queue_create("CameraSession", DISPATCH_QUEUE_SERIAL)
+        let outputQueue = DispatchQueue(label: "CameraSession")
         videoOutput.setSampleBufferDelegate(self, queue: outputQueue)
         if captureSession.canAddOutput(videoOutput) {
             captureSession.addOutput(videoOutput)
@@ -79,41 +87,44 @@ class ViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate, 
             print("Video output can not be added.")
         }
         
-        let configurationOptions: [String: AnyObject] = [CIDetectorAccuracy: CIDetectorAccuracyHigh, CIDetectorTracking : true, CIDetectorNumberOfAngles: 11]
+        let configurationOptions: [String: AnyObject] = [CIDetectorAccuracy: CIDetectorAccuracyHigh as AnyObject, CIDetectorTracking : true as AnyObject, CIDetectorNumberOfAngles: 11 as AnyObject]
         faceDetector = CIDetector(ofType: CIDetectorTypeFace, context: nil, options: configurationOptions)
 
         captureSession.startRunning()
     }
     
     
-    func captureOutput(captureOutput: AVCaptureOutput!, didOutputMetadataObjects metadataObjects: [AnyObject]!, fromConnection connection: AVCaptureConnection!) {
+    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         
         for metadataObject in metadataObjects as! [AVMetadataFaceObject] {
-            dispatch_async(dispatch_get_main_queue()) {
+            DispatchQueue.main.async {
                 self.avFaceID.text = "face ID: \(metadataObject.faceID)"
                 self.avFaceRoll.text = "roll: \(Int(metadataObject.rollAngle))"
                 self.avFaceYaw.text = "yaw: \(Int(metadataObject.yawAngle))"
             }
         }
+        
     }
-
     
-    func captureOutput(captureOutput: AVCaptureOutput!, didOutputSampleBuffer sampleBuffer: CMSampleBuffer!, fromConnection connection: AVCaptureConnection!) {
+
+
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
         let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)!
-        let inputImage = CIImage.init(CVImageBuffer: imageBuffer)
+        let inputImage = CIImage(cvImageBuffer: imageBuffer)
         
-        let detectorOptions: [String: AnyObject] = [CIDetectorSmile: true, CIDetectorEyeBlink: true, CIDetectorImageOrientation : 6]
+        let detectorOptions: [String: AnyObject] = [CIDetectorSmile: true as AnyObject, CIDetectorEyeBlink: true as AnyObject, CIDetectorImageOrientation : 6 as AnyObject]
         
-        let faces = self.faceDetector!.featuresInImage(inputImage, options: detectorOptions)
+        let faces = self.faceDetector!.features(in: inputImage, options: detectorOptions)
         
         for face in faces as! [CIFaceFeature] {
-            dispatch_async(dispatch_get_main_queue()) {
+            DispatchQueue.main.async {
                 self.ciFaceID.text = "face ID: \(face.trackingID)"
                 self.ciFaceAngle.text = "angle: \(Int(face.faceAngle))"
             }
         }
+        
     }
-    
+
 }
 
